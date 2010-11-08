@@ -1,4 +1,13 @@
 Articles
 --------
 
-Class-Based n-gram Models of Natural Language, Peter F. Brown : http://acl.ldc.upenn.edu/J/J92/J92-4003.pdf
+Class-Based n-gram Models of Natural Language, Peter F. Brown
+	http://acl.ldc.upenn.edu/J/J92/J92-4003.pdf
+
+Implementations
+---------------
+SRILM ngram-class
+	http://www.speech.sri.com/srilm/
+
+Liang: Semi-supervised learning for natural language processing
+	http://www.cs.berkeley.edu/~pliang/papers/meng-thesis.pdf
