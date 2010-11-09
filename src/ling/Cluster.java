@@ -9,7 +9,7 @@ public class Cluster implements Comparable<Cluster> {
 	public Cluster(Cluster x, Cluster y, Vocabs v) {
 		this.x = x;
 		this.y = y;
-		id = v.getID(x.getId()+"+"+y.getId());
+		id = v.getID(x.getId()+","+y.getId());
 	}
 	
 	@Override
@@ -37,6 +37,6 @@ public class Cluster implements Comparable<Cluster> {
 	}
 
 	public String toString() {
-		return "("+x+"+"+y+")";
+		return "("+x+","+y+")";
 	}
 }

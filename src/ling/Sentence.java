@@ -50,7 +50,7 @@ public class Sentence {
 			int Type = getType(s.charAt(i));
 			if (Type != curType || curType == 3) {
 				/* if previous character is not a space */
-				if (curType != 0) {
+				if (curType != 0 && curType != 3) {
 					Mytokens.add(new Token(s.substring(last, i), vocabs));
 				}
 				last = i;

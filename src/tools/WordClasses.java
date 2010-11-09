@@ -54,42 +54,52 @@ public class WordClasses {
 		final double MI = computeMI();
 		System.out.println("MI : "+MI/N);
 		
-		// Compute sk(i)
+		// Compute sk(i) (16)
 		HashMap<Cluster, Double> S = new HashMap<Cluster, Double>();
 		for(Cluster c : count.keySet()) {
 			S.put(c, -q(c, c));
 		}
-		for(Cluster p : joint.keySet()) {
+		for(Cluster p : joint.keySet()) { // p : (i, j)
 			S.put(p.x, S.get(p.x) + Q.get(p)); // qk(i, m)
-			S.put(p.y, S.get(p.y) + Q.get(p)); // qk(l, i)
+			S.put(p.y, S.get(p.y) + Q.get(p)); // qk(l, j)
 		}
+		
+		System.out.println("Begin computing V^3");
+		
+		// Compute sk(i+j)
+		for(Cluster x : count.keySet()) {
+			for(Cluster y : count.keySet()) {
+				Cluster p = new Cluster(x, y, v); // p : (i, j)
+				double pijij = cooccurrence(p.x, p.y) + cooccurrence(p.x, p.x) + cooccurrence(p.y, p.y) + cooccurrence(p.y, p.x);
+				double pij = count.get(p.x) + count.get(p.y);
+				double d = pijij == 0 ? 0 : - pijij*(logN + Math.log(pijij) - 2*Math.log(pij));
+
+				double logPl = Math.log(count.get(p.x) + count.get(p.y));
+				for(Cluster c : count.keySet()) { // c : l
+					// (14)
+					double pc = cooccurrence(p.x, c) + cooccurrence(p.y, c); // p(i+j, l)
+					double pr = count.get(c); // p(l)
+					double qpc = pc == 0 ? 0 : pc*(logN + Math.log(pc) - logPl - Math.log(pr)); // q(i+j, l)
+					pc = cooccurrence(c, p.x) + cooccurrence(c, p.y); // p(l, i+j)
+					double qcp = pc == 0 ? 0 : pc*(logN + Math.log(pc) - logPl - Math.log(pr)); // q(l, i+j)
+					// (15)
+					d += qpc + qcp;
+				}
+				S.put(p, d);
+			}
+		}
+
 		
 		// Compute L(i,j)
 		HashMap<Cluster, Double> L = new HashMap<Cluster, Double>();
-		for(Cluster p : joint.keySet()) {
-			double v = S.get(p.x) + S.get(p.y) - Q.get(p) - q(p.y, p.x); // sk(i) + sk(j) - qk(i, j) - qk(j, i) [- qk(i+j,i+j)]
-			L.put(p, v);
-		}
-		
-		System.out.println("Begin computing V3");
-		
-		 // Compute qk(i+j, m)
-		for(Cluster p : joint.keySet()) {
-			double logPl = Math.log(count.get(p.x) + count.get(p.y));
-			for(Cluster c : count.keySet()) {
-				// (14)
-				double pc = cooccurrence(p.x, c) + cooccurrence(p.y, c);
-				double pr = count.get(c);
-				double qpc = pc == 0 ? 0 : pc*(logN + Math.log(pc) - logPl - Math.log(pr));
-				pc = cooccurrence(c, p.x) + cooccurrence(c, p.y);
-				double qcp = pc == 0 ? 0 : pc*(logN + Math.log(pc) - logPl - Math.log(pr));
-				// (15)
-				if(!c.equals(p.x) && !c.equals(p.x)) {
-					L.put(p, L.get(p) - qcp - qpc); // -qk(l, i+j) - qk(i+j, m)
-				}
+		for(Cluster x : count.keySet()) {
+			for(Cluster y : count.keySet()) {
+				Cluster p = new Cluster(x, y, v);
+				double v = S.get(x) + S.get(y) - S.get(p) - q(x, y) - q(y, x); // sk(i) + sk(j) - qk(i, j) - qk(j, i) [- qk(i+j,i+j)]
+				L.put(p, v);
 			}
 		}
-		
+				
 		// THE loop!
 		for(int i = 0; i < C; i++) {
 			System.out.println("The loop #"+i);
@@ -106,6 +116,8 @@ public class WordClasses {
 			}
 			if(minP == null) {
 				System.err.println("No more merge possible.");
+				Cluster c = (Cluster) joint.keySet().toArray()[0];
+				System.out.println(c+";");
 				break;
 			}
 			System.out.println("Merge "+minP+" | DMI : "+minV);
@@ -191,12 +203,6 @@ public class WordClasses {
 					L.put(ijm, L.get(ijm) - qcp - qpc);
 				}
 			}
-
-		/*	for(Cluster c : count.keySet()) {
-				joint.remove(new Cluster(minP, c, v));
-				joint.remove(new Cluster(c, minP, v));
-			}
-			count.remove(minP); */
 		}
 		
 	}

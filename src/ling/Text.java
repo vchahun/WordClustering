@@ -82,24 +82,7 @@ public class Text {
 		}
 		return null;
 	}
-/*	public Sentence getNextSentence() {
-		if(!sentenceBuffer.isEmpty())
-			return sentenceBuffer.pollLast();
-		try {
-			String line = new String();
-			while (dis.ready() && line.length() == 0) {
-				line = dis.readLine();
-			}
-			if (line.length() == 0)
-				return null;
-			for(String l : line.replaceAll("\\.\\.\\.","\\.").replaceAll("[\\.!\\?;:。？！；：]", "$0\\$").split("\\$")) {
-				sentenceBuffer.push(new Sentence(vocab, l));
-			}
-			return sentenceBuffer.pollLast();
-		} catch (IOException e) {}
-		return null;
-	}
-*/	
+
 	/**
 	 * rewind the buffer to the beginning of the file
 	 */
