@@ -65,16 +65,20 @@ public class WordClasses {
 		}
 		
 		System.out.println("Begin computing V^3");
-		
-		// Compute sk(i+j)
+		// Compute L(i,j)
+		HashMap<Cluster, Double> L = new HashMap<Cluster, Double>();
+		/*for(Cluster x : count.keySet()) {
+			System.out.print(x+"\t");
+		}
+		System.out.println();*/
 		for(Cluster x : count.keySet()) {
 			for(Cluster y : count.keySet()) {
 				Cluster p = new Cluster(x, y, v); // p : (i, j)
-				double pijij = cooccurrence(p.x, p.y) + cooccurrence(p.x, p.x) + cooccurrence(p.y, p.y) + cooccurrence(p.y, p.x);
-				double pij = count.get(p.x) + count.get(p.y);
-				double d = pijij == 0 ? 0 : - pijij*(logN + Math.log(pijij) - 2*Math.log(pij));
-
-				double logPl = Math.log(count.get(p.x) + count.get(p.y));
+				double pijij = cooccurrence(x, y) + cooccurrence(x, x) + cooccurrence(y, y) + cooccurrence(y, x);
+				double pij = count.get(x) + count.get(y);
+				double Sxy = pijij == 0 ? 0 : - pijij*(logN + Math.log(pijij) - 2*Math.log(pij)); // sk(i+j)
+				
+				double logPl = Math.log(count.get(x) + count.get(y));
 				for(Cluster c : count.keySet()) { // c : l
 					// (14)
 					double pc = cooccurrence(p.x, c) + cooccurrence(p.y, c); // p(i+j, l)
@@ -83,44 +87,40 @@ public class WordClasses {
 					pc = cooccurrence(c, p.x) + cooccurrence(c, p.y); // p(l, i+j)
 					double qcp = pc == 0 ? 0 : pc*(logN + Math.log(pc) - logPl - Math.log(pr)); // q(l, i+j)
 					// (15)
-					d += qpc + qcp;
+					Sxy += qpc + qcp;
 				}
-				S.put(p, d);
-			}
-		}
-
-		
-		// Compute L(i,j)
-		HashMap<Cluster, Double> L = new HashMap<Cluster, Double>();
-		for(Cluster x : count.keySet()) {
-			for(Cluster y : count.keySet()) {
-				Cluster p = new Cluster(x, y, v);
-				double v = S.get(x) + S.get(y) - S.get(p) - q(x, y) - q(y, x); // sk(i) + sk(j) - qk(i, j) - qk(j, i) [- qk(i+j,i+j)]
-				L.put(p, v);
-			}
-		}
 				
+				double v = S.get(x) + S.get(y) - Sxy - q(x, y) - q(y, x); // sk(i) + sk(j) - qk(i, j) - qk(j, i)
+				L.put(p, v);
+				//System.out.printf("%.2f\t", v);
+			}
+			//System.out.println();
+		}
+		//C = N;
 		// THE loop!
-		for(int i = 0; i < C; i++) {
-			System.out.println("The loop #"+i);
+		for(int i = 0; i < N-C; i++) {
 			double minV = Double.MAX_VALUE;
 			Cluster minP = null;
-			for(Cluster p : joint.keySet()) {
-				if(!p.x.equals(p.y)) {
-					double l = Math.abs(L.get(p));
-					if(l < minV) {
-						minV = l;
-						minP = p;
+			for(Cluster x : count.keySet()) {
+				for(Cluster y : count.keySet()) {
+					if(!x.equals(y)) {
+						Cluster p = new Cluster(x, y, v);
+						double l = Math.abs(L.get(p));
+						if(l < minV) {
+							minV = l;
+							minP = p;
+						}
 					}
 				}
 			}
 			if(minP == null) {
 				System.err.println("No more merge possible.");
-				Cluster c = (Cluster) joint.keySet().toArray()[0];
+				Cluster c = (Cluster) count.keySet().toArray()[0];
 				System.out.println(c+";");
 				break;
 			}
-			System.out.println("Merge "+minP+" | DMI : "+minV);
+			System.out.printf("(%d) Merge %s | DMI : %.3f\n", i, minP, minV);
+			
 			// Update values
 			// Remove i,j / Insert i+j
 			for(Cluster c : count.keySet()) {
@@ -161,19 +161,22 @@ public class WordClasses {
 			}
 			// Update Lk(i,j)
 			logPl = Math.log(countP);
-			for(Cluster p : joint.keySet()) {
-				if(p.x.equals(minP) || p.y.equals(minP))
-					continue; // Lk(i+j, l)
-				double pc = cooccurrence(p.x, minP) +  cooccurrence(p.y, minP);
-				double pr = count.get(p.x) + count.get(p.y);
-				double qpc =  pc == 0 ? 0 : pc*(logN + Math.log(pc) - logPl - Math.log(pr));
-				pc = cooccurrence(minP, p.x) +  cooccurrence(minP, p.y);
-				double qcp = pc == 0 ? 0 : pc*(logN + Math.log(pc) - logPl - Math.log(pr));
-				double d = L.get(p)
-				- q(p, minP.x) - q(minP.x, p)
-				- q(p, minP.y) - q(minP.y, p)
-				- qpc - qcp;
-				L.put(p, d); // Lk(l,m) - qk(l+m, i) - qk(i, l+m) - qk(l+m, j) - qk(j, l+m) + q(k-1)(l+m, i) + q(k-1)(i, l+m)
+			for(Cluster x : count.keySet()) { 
+				for(Cluster y : count.keySet()) {
+					if(x.equals(minP) || y.equals(minP))
+						continue; // Lk(i+j, l)
+					Cluster p = new Cluster(x, y, v);
+					double pc = cooccurrence(x, minP) +  cooccurrence(y, minP);
+					double pr = count.get(x) + count.get(y);
+					double qpc =  pc == 0 ? 0 : pc*(logN + Math.log(pc) - logPl - Math.log(pr));
+					pc = cooccurrence(minP, x) +  cooccurrence(minP, y);
+					double qcp = pc == 0 ? 0 : pc*(logN + Math.log(pc) - logPl - Math.log(pr));
+					double d = L.get(p)
+					- q(p, minP.x) - q(minP.x, p)
+					- q(p, minP.y) - q(minP.y, p)
+					- qpc - qcp;
+					L.put(p, d); // Lk(l,m) - qk(l+m, i) - qk(i, l+m) - qk(l+m, j) - qk(j, l+m) + q(k-1)(l+m, i) + q(k-1)(i, l+m)
+				}
 			}
 			// Insert S(i+j), L(i+j, l)
 			double sij = - q(minP, minP); // qk(i+j, i+j)
@@ -182,25 +185,30 @@ public class WordClasses {
 			}
 			S.put(minP, sij);
 			for(Cluster c : count.keySet()) {
-				double l = sij + S.get(c) - q(c, minP) - q(minP, c);
-				L.put(new Cluster(c, minP, v), l); // sk(l) + sk(i+j) - q(k-1)(l, i) - q(k-1)(i, l) [- q(k-1)(i+l, i+l)]
+				double pilil = cooccurrence(c, minP) + cooccurrence(c, c) + cooccurrence(minP, c) + cooccurrence(minP, minP);
+				double pil = count.get(c) + count.get(minP);
+				double qilil = pilil == 0 ? 0 : - pilil*(logN + Math.log(pilil) - 2*Math.log(pil));
+				double l = sij + S.get(c) - q(c, minP) - q(minP, c) - qilil;
+				L.put(new Cluster(c, minP, v), l); // sk(l) + sk(i+j) - q(k-1)(l, i) - q(k-1)(i, l) - q(k-1)(i+l, i+l)
 				L.put(new Cluster(minP, c, v), l);
 			}
-			for(Cluster p : joint.keySet()) {
-				// (14)
-				double pc = cooccurrence(p.x, p.y) + cooccurrence(p.x, minP);
-				double pl = count.get(p.x), pr = cooccurrence(p.y, minP);
-				double qpc = pc == 0 ? 0 : pc*(logN + Math.log(pc) - Math.log(pl) - Math.log(pr));
-				pc = cooccurrence(p.y, p.x) + cooccurrence(minP, p.x);
-				double qcp = pc == 0 ? 0 : pc*(logN + Math.log(pc) - Math.log(pl) - Math.log(pr));
-				// (15)
-				if(!p.x.equals(p.y) && !p.x.equals(minP)) {
-					Cluster lij = new Cluster(p.x, minP, v);
-					L.put(lij, L.get(lij) - qcp - qpc); // -q(k-1)(l, m+i) - q(k-1)(l+i, m)
-				}
-				if(!p.y.equals(p.x) && !p.y.equals(minP)) {
-					Cluster ijm = new Cluster(minP, p.y, v);
-					L.put(ijm, L.get(ijm) - qcp - qpc);
+			for(Cluster x : count.keySet()) { 
+				for(Cluster y : count.keySet()) {
+					// (14)
+					double pc = cooccurrence(x, y) + cooccurrence(x, minP);
+					double pl = count.get(x), pr = cooccurrence(y, minP);
+					double qpc = pc == 0 ? 0 : pc*(logN + Math.log(pc) - Math.log(pl) - Math.log(pr));
+					pc = cooccurrence(y, x) + cooccurrence(minP, x);
+					double qcp = pc == 0 ? 0 : pc*(logN + Math.log(pc) - Math.log(pl) - Math.log(pr));
+					// (15)
+					if(!x.equals(y) && !x.equals(minP)) {
+						Cluster lij = new Cluster(x, minP, v);
+						L.put(lij, L.get(lij) - qcp - qpc); // -q(k-1)(l, m+i) - q(k-1)(l+i, m)
+					}
+					if(!y.equals(x) && !y.equals(minP)) {
+						Cluster ijm = new Cluster(minP, y, v);
+						L.put(ijm, L.get(ijm) - qcp - qpc);
+					}
 				}
 			}
 		}
