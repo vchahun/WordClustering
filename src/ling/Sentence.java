@@ -58,7 +58,7 @@ public class Sentence {
 			}
 			i++;
 		}
-		//if (curType != 3)
+		if (curType != 0 && curType != 3)
 		Mytokens.add(new Token(s.substring(last, size), vocabs));
 		return Mytokens;
 	}

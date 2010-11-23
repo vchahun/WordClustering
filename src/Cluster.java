@@ -6,12 +6,16 @@ import ling.Text;
 import ling.Vocabs;
 
 
-public class Test {
+public class Cluster {
 	public static void main(String[] args) {
+		if(args.length != 2) {
+			System.err.println("Usage : java Cluster nClusters corpus.txt");
+			System.exit(0);
+		}
 		Vocabs v = new Vocabs("French");
 		try {
-			Text t = new Text("corpus/lemonde_10.txt", v);
-			new WordClasses(t, 50);
+			Text t = new Text(args[1], v);
+			new WordClasses(t, Integer.parseInt(args[0]));
 		} catch (FileNotFoundException e) {
 			System.err.println("Corpus file not found!");
 		}
